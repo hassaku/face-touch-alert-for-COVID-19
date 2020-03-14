@@ -1,0 +1,30 @@
+<html>
+<head>
+  <title>Face Touch Detection</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/push.js/1.0.9/push.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/handtrackjs@0.0.13/dist/handtrack.min.js"></script>
+  <script src="js/face-api.min.js"></script>
+</head>
+
+<style>
+.canvas-wrapper {
+    position: relative;
+}
+
+.canvas-wrapper canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+</style>
+
+<body onload="init()">
+  <div class="canvas-wrapper">
+    <video id="video" width="640" height="480"></video>
+    <canvas class="canvas" id="hand-canvas" width="640" height="480"></canvas>
+    <canvas class="canvas" id="face-canvas" width="640" height="480"></canvas>
+  </div>
+  <div id="message">loading model...</div>
+  <script src="js/face-touch.js"></script>
+</body>
+</html>
