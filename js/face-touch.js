@@ -3,8 +3,8 @@ const context = canvas.getContext('2d');
 const video = document.getElementById('video');
 
 let handModel;
-let startedTrackingAt = null;
-let touched = false;
+let lastAlertAt = new Date().getTime() / 1000
+const noAlertIn = 10;
 
 const init = async () => {
   Push.Permission.request();
@@ -36,20 +36,35 @@ const init = async () => {
     handModel = l_model;
     handTrack.startVideo(video).then(function (status) {
       console.log("START");
-      processFrames();
+      setInterval(async () => {
+        processFrames();
+      }, 100)
     });
   });
 
-  document.getElementById('message').innerText = 'Running!';
+  document.getElementById('message').innerText = 'Ready!';
 }
 
 function intersectRect(r1, r2) {
   return !(r2.left > r1.right || r2.right < r1.left || r2.top > r1.bottom || r2.bottom < r1.top);
 }
 
+function showAlert() {
+  Push.create("Face Touch Alert", {
+    body: "Don't touch your face!",
+    timeout: noAlertIn * 1000,
+    requireInteraction: false,
+    onClick: function () {
+      window.focus();
+      this.close();
+    }
+  });
+}
+
 async function processFrames() {
   const faceResult = await processFaceTracking();
   const handResult = await processHandTracking();
+  let touched = false;
 
   //console.log("face", faceResult);
   //console.log("hand", handResult);
@@ -59,9 +74,11 @@ async function processFrames() {
   if (handResult.length > 0) {
     for (let i = 0; i < handResult.length; i++) {
       context.beginPath();
-      context.lineWidth = 3;
-      context.strokeStyle = "rgba(255, 0, 0, 0.6)";
-      context.rect(...handResult[i].bbox);
+      //context.lineWidth = 3;
+      //context.strokeStyle = "rgba(255, 0, 0, 0.6)";
+      //context.rect(...handResult[i].bbox);
+      context.fillStyle = "rgba(255, 0, 0, 0.99)";
+      context.fillRect(...handResult[i].bbox);
       context.stroke();
     }
   }
@@ -75,9 +92,11 @@ async function processFrames() {
     };
 
     context.beginPath();
-    context.lineWidth = 3;
-    context.strokeStyle = "rgba(0, 255, 0, 0.6)";
-    context.rect(faceBox.left, faceBox.top, faceBox.right - faceBox.left, faceBox.bottom - faceBox.top);
+    //context.lineWidth = 3;
+    //context.strokeStyle = "rgba(0, 255, 0, 0.6)";
+    //context.rect(faceBox.left, faceBox.top, faceBox.right - faceBox.left, faceBox.bottom - faceBox.top);
+    context.fillStyle = "rgba(0, 255, 0, 0.99)";
+    context.fillRect(faceBox.left, faceBox.top, faceBox.right - faceBox.left, faceBox.bottom - faceBox.top);
     context.stroke();
 
     if (handResult.length > 0) {
@@ -92,24 +111,26 @@ async function processFrames() {
 
         const touch = intersectRect(faceBox, handBox);
         if (touch) {
-            console.log("TOUCHED:", touch);
+            touched = true
         }
       }
     }
   }
 
-  // ((new Date().getTime() - startedTrackingAt) / 1000.0)
+  if (touched) {
+    document.getElementById('message').innerText = 'Touched! :(';
 
-  //Push.create("顔タッチ通知", { //タイトルの入力
-  //  body: "顔を触りましたね", //内容の入力
-  //  timeout: 5000, //通知が消えるタイミング
-  //  onClick: function () {
-  //    window.focus(); //「window」にフォーカスする
-  //    this.close(); //通知を消す
-  //  }
-  //});
+    const now = new Date().getTime() / 1000;
+    if (now - lastAlertAt > noAlertIn) {
+      lastAlertAt = new Date().getTime() / 1000;
+      showAlert();
+    }
 
-  requestAnimationFrame(processFrames);
+  } else {
+    document.getElementById('message').innerText = 'Not touched. :)';
+  }
+
+  //requestAnimationFrame(processFrames);
 }
 
 async function processFaceTracking() {
@@ -125,11 +146,6 @@ async function processFaceTracking() {
     return null;
   }
   return result;
-
-  // これのせいでチカチカする. videoとcanvasのサイズが同じなら不要なはず...
-  //const faceTrackingDims = faceapi.matchDimensions(canvas, video, true);
-  //const resizedResult = faceapi.resizeResults(result, faceTrackingDims);
-  //return resizedResult;
 }
 
 async function processHandTracking() {
